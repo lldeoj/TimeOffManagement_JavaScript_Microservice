@@ -1,0 +1,22 @@
+{
+  "name": "time-off-consumer-service",
+  "version": "1.0.0",
+  "description": "Consumer Service for Time-Off Microservice",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": ["time-off", "microservice", "rabbitmq", "consumer"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "mongodb": "^6.3.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

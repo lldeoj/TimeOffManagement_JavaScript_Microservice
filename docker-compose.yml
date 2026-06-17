@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq-server
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb-server
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - mongodb_data:/data/db
+
+  publisher-api:
+    build:
+      context: ./publisher-api
+      dockerfile: Dockerfile
+    container_name: publisher-api-server
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      MONGODB_URL: mongodb://admin:password@mongodb:27017/time_off?authSource=admin
+      PORT: 3000
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./publisher-api:/app
+      - /app/node_modules
+    networks:
+      - microservice-network
+
+  consumer-service:
+    build:
+      context: ./consumer-service
+      dockerfile: Dockerfile
+    container_name: consumer-service-worker
+    environment:
+      NODE_ENV: production
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      MONGODB_URL: mongodb://admin:password@mongodb:27017/time_off?authSource=admin
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./consumer-service:/app
+      - /app/node_modules
+    networks:
+      - microservice-network
+
+volumes:
+  rabbitmq_data:
+  mongodb_data:
+
+networks:
+  microservice-network:
+    driver: bridge
