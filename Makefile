@@ -1,8 +1,9 @@
-.PHONY: help setup start stop restart logs clean test
+.PHONY: help setup start stop restart logs clean test test-local test-docker test-coverage test-watch test-unit test-integration
 
 help:
 	@echo "Time-Off Microservice - Available Commands"
 	@echo ""
+	@echo "Services Management:"
 	@echo "  make setup          - Build all Docker images"
 	@echo "  make start          - Start all services (background)"
 	@echo "  make stop           - Stop all services"
@@ -17,6 +18,15 @@ help:
 	@echo "  make health         - Check health of all services"
 	@echo "  make shell-api      - Open shell in Publisher API container"
 	@echo "  make shell-consumer - Open shell in Consumer Service container"
+	@echo ""
+	@echo "Testing:"
+	@echo "  make test           - Run all tests locally"
+	@echo "  make test-local     - Run tests locally (same as test)"
+	@echo "  make test-docker    - Run tests in Docker containers"
+	@echo "  make test-coverage  - Generate coverage reports"
+	@echo "  make test-watch     - Run tests in watch mode"
+	@echo "  make test-unit      - Run unit tests only"
+	@echo "  make test-integration - Run integration tests only"
 
 setup:
 	@echo "Building Docker images..."
@@ -94,5 +104,32 @@ test-list:
 test-health:
 	@echo "Testing: Health check..."
 	@curl http://localhost:3000/health | jq .
+
+# Testing targets
+test: test-local
+
+test-local:
+	@echo "Running tests locally..."
+	@bash run-tests.sh local
+
+test-docker:
+	@echo "Running tests in Docker..."
+	@bash run-tests.sh docker
+
+test-coverage:
+	@echo "Generating coverage reports..."
+	@bash run-tests.sh coverage
+
+test-watch:
+	@echo "Running tests in watch mode..."
+	@bash run-tests.sh watch
+
+test-unit:
+	@echo "Running unit tests..."
+	@bash run-tests.sh unit
+
+test-integration:
+	@echo "Running integration tests..."
+	@bash run-tests.sh integration
 
 .DEFAULT_GOAL := help

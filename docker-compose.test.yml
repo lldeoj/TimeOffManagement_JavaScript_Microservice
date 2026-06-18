@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # Publisher API Tests
+  publisher-tests:
+    build:
+      context: ./publisher-api
+      dockerfile: Dockerfile.test
+    container_name: publisher-api-tests
+    environment:
+      NODE_ENV: test
+    volumes:
+      - ./publisher-api/coverage:/app/coverage
+    command: npm test
+
+  # Consumer Service Tests
+  consumer-tests:
+    build:
+      context: ./consumer-service
+      dockerfile: Dockerfile.test
+    container_name: consumer-service-tests
+    environment:
+      NODE_ENV: test
+    volumes:
+      - ./consumer-service/coverage:/app/coverage
+    command: npm test

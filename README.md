@@ -539,8 +539,7 @@ MIT
 
 ## Author
 
-Senior Developer - Time-Off Microservice Implementation
-
+Luciano Oliveira
 ---
 
 **For questions or issues, please refer to the deployment logs or contact the development team.**

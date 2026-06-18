@@ -1,0 +1,103 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [ 18.x, 20.x ]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies (Publisher API)
+      run: |
+        cd publisher-api
+        npm ci
+
+    - name: Run tests (Publisher API)
+      run: |
+        cd publisher-api
+        npm test -- --coverage
+
+    - name: Upload coverage (Publisher API)
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./publisher-api/coverage/lcov.info
+        flags: publisher-api
+        name: publisher-api-coverage
+
+    - name: Install dependencies (Consumer Service)
+      run: |
+        cd consumer-service
+        npm ci
+
+    - name: Run tests (Consumer Service)
+      run: |
+        cd consumer-service
+        npm test -- --coverage
+
+    - name: Upload coverage (Consumer Service)
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./consumer-service/coverage/lcov.info
+        flags: consumer-service
+        name: consumer-service-coverage
+
+  docker-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Docker test images
+      run: |
+        docker-compose -f docker-compose.test.yml build
+
+    - name: Run Docker tests
+      run: |
+        docker-compose -f docker-compose.test.yml up --exit-code-from publisher-tests
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose -f docker-compose.test.yml down
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+
+    - name: Check code quality (Publisher API)
+      run: |
+        cd publisher-api
+        npm ci
+        npm run test:unit || true
+
+    - name: Check code quality (Consumer Service)
+      run: |
+        cd consumer-service
+        npm ci
+        npm test || true

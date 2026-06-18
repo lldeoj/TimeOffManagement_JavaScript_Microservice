@@ -17,6 +17,8 @@ services:
       retries: 5
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - microservice-network
 
   mongodb:
     image: mongo:7
@@ -33,6 +35,8 @@ services:
       retries: 5
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - microservice-network
 
   publisher-api:
     build:
@@ -42,7 +46,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       MONGODB_URL: mongodb://admin:password@mongodb:27017/time_off?authSource=admin
       PORT: 3000
@@ -56,6 +60,7 @@ services:
       - /app/node_modules
     networks:
       - microservice-network
+    restart: unless-stopped
 
   consumer-service:
     build:
@@ -63,7 +68,7 @@ services:
       dockerfile: Dockerfile
     container_name: consumer-service-worker
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       MONGODB_URL: mongodb://admin:password@mongodb:27017/time_off?authSource=admin
     depends_on:
@@ -76,6 +81,7 @@ services:
       - /app/node_modules
     networks:
       - microservice-network
+    restart: unless-stopped
 
 volumes:
   rabbitmq_data:

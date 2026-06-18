@@ -24,16 +24,32 @@ let mongoClient = null;
 let rabbitMQ = null;
 let timeOffService = null;
 
+// Retry logic for connection failures
+async function retryConnection(fn, maxRetries = 60, delayMs = 1000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const remaining = maxRetries - attempt;
+      console.log(`  ⏳ Retry ${attempt}/${maxRetries} (${remaining} remaining) - ${error.code || error.message}`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 // Initialize connections
 async function initializeConnections() {
   try {
-    // Connect to MongoDB
+    // Connect to MongoDB with retries
+    console.log('Connecting to MongoDB...');
     mongoClient = new MongoDBClient();
-    await mongoClient.connect();
+    await retryConnection(() => mongoClient.connect());
 
-    // Connect to RabbitMQ
+    // Connect to RabbitMQ with retries
+    console.log('Connecting to RabbitMQ...');
     rabbitMQ = new RabbitMQClient();
-    await rabbitMQ.connect();
+    await retryConnection(() => rabbitMQ.connect());
 
     // Initialize service
     const collection = mongoClient.getCollection();
@@ -41,7 +57,7 @@ async function initializeConnections() {
 
     console.log('✓ All services initialized successfully');
   } catch (error) {
-    console.error('✗ Failed to initialize services:', error);
+    console.error('✗ Failed to initialize services:', error.message);
     process.exit(1);
   }
 }
@@ -183,7 +199,7 @@ async function start() {
   
   app.listen(PORT, () => {
     console.log(`\n🚀 Publisher API running on http://localhost:${PORT}`);
-    console.log('   Health check: http://localhost:${PORT}/health\n');
+    console.log(`   Health check: http://localhost:${PORT}/health\n`);
   });
 }
 

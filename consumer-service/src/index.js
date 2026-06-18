@@ -6,15 +6,31 @@ let rabbitMQ = null;
 let mongoClient = null;
 let processor = null;
 
+// Retry logic for connection failures
+async function retryConnection(fn, maxRetries = 60, delayMs = 1000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const remaining = maxRetries - attempt;
+      console.log(`  ⏳ Retry ${attempt}/${maxRetries} (${remaining} remaining) - ${error.code || error.message}`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function initializeConnections() {
   try {
-    // Connect to RabbitMQ
+    // Connect to RabbitMQ with retries
+    console.log('Connecting to RabbitMQ...');
     rabbitMQ = new RabbitMQConsumer();
-    await rabbitMQ.connect();
+    await retryConnection(() => rabbitMQ.connect());
 
-    // Connect to MongoDB
+    // Connect to MongoDB with retries
+    console.log('Connecting to MongoDB...');
     mongoClient = new MongoDBConsumer();
-    await mongoClient.connect();
+    await retryConnection(() => mongoClient.connect());
 
     // Initialize processor
     const requestsCollection = mongoClient.getRequestsCollection();
@@ -23,7 +39,7 @@ async function initializeConnections() {
 
     console.log('✓ Consumer service initialized successfully\n');
   } catch (error) {
-    console.error('✗ Failed to initialize consumer:', error);
+    console.error('✗ Failed to initialize consumer:', error.message);
     process.exit(1);
   }
 }

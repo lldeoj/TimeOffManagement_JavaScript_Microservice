@@ -6,10 +6,11 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy application files
 COPY src ./src
+COPY entrypoint.js ./
 
 # Start consumer service
-CMD ["node", "src/index.js"]
+CMD ["sh", "-c", "node entrypoint.js && npm start"]
